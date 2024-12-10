@@ -6,14 +6,14 @@ class UserRepository:
     def __init__(self,db:Connection):
         self.db = db
     
-    async def create_user(self, username:str, password_hash:str)->int:
+    async def create_user(self, username:str, password_hash:str, role:str = "user")->int:
         query = """
-        INSERT INTO Users (username, password_hash, created_at)
-        VALUES ($1, $2, $3)
+        INSERT INTO users (username, password_hash, created_at,role)
+        VALUES ($1, $2, $3, $4)
         RETURNING id;
         """
         created_at = datetime.now()
-        return await self.db.fetchval(query, username, password_hash, created_at)
+        return await self.db.fetchval(query, username, password_hash, created_at,role)
     
     async def check_username(self, username: str) -> str:
         query = """
@@ -33,7 +33,7 @@ class UserRepository:
     async def get_user_by_username(self, username: str) ->str:
         """Получение пользователя по имени пользователя"""
         query = """
-        SELECT id, username, password_hash, refresh_token, created_at
+        SELECT id, username, password_hash, refresh_token, created_at, role
         FROM Users
         WHERE username = $1
         """

@@ -7,7 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from db.connection import get_db_connection
 from repositories.user import UserRepository
 from services.auth import create_user, get_user, login_auth, verify_refresh_token
-from models.user import CreateUserRequest, User, Token,RefreshTokenRequest
+from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName
 
 router = APIRouter()
 logger = getLogger(__name__)
@@ -24,8 +24,8 @@ async def register(user: CreateUserRequest, db=Depends(get_db_connection)):
                 detail="User with this username already registered"
             )
         
-        user_id = await create_user(user_repo, user.username, user.password)
-        return {"id":user_id, "username":user.username, "refresh_token": None, "created_at": datetime.now()}
+        user_id = await create_user(user_repo, user.username, user.password, user_role=user.role)
+        return {"id":user_id, "username":user.username, "refresh_token": None, "created_at": datetime.now(), "role":user.role}
     
     except HTTPException as http_exc:
         raise http_exc
@@ -50,11 +50,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get
             )
 
         access_token = await create_token(
-            data={"sub": user_data["username"], "user_id": user_data["id"]},
+            data={"sub": user_data["username"], "user_id": user_data["id"], "user_role":user_data["role"]},
             token_type="access"
         )
         refresh_token = await create_token(
-            data={"sub": user_data["username"], "user_id": user_data["id"]},
+            data={"sub": user_data["username"], "user_id": user_data["id"], "user_role":user_data["role"]},
             token_type="refresh"
         )
         await user_repo.update_refresh_token(user_data["id"], refresh_token)
@@ -95,6 +95,7 @@ async def get_user_info(
         "username": user["username"],
         "refresh_token": user["refresh_token"],
         "created_at": user["created_at"],
+        "role": user["role"],
         "message": "User successfully authenticated and authorized."
     }
 
@@ -111,7 +112,7 @@ async def refresh_token_endpoint(token_request: RefreshTokenRequest, db=Depends(
 
 
 @router.delete("/delete", tags=["delete"])
-async def delete_user(user: User, db=Depends(get_db_connection)):
+async def delete_user(user: UserName, db=Depends(get_db_connection)):
     repo = UserRepository(db)
     deleted = await repo.delete_user_by_username(user.username)
     if not deleted:

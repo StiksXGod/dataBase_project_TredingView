@@ -68,11 +68,16 @@ async def verify_refresh_token(user_repo: UserRepository, refresh_token:str)->Li
     await user_repo.update_refresh_token(user_id, new_refresh_token)
     return new_access_token, new_refresh_token
 
+async def role_cheacker(role:str)->None:
+    if role != "admin" and role != "user":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="role not supported rules")
 
-async def create_user(repo: UserRepository, username: str, password:str)->int:
+
+async def create_user(repo: UserRepository, username: str, password:str, user_role:str)->int:
     await username_password_checker(username,password)
+    await role_cheacker(role=user_role)
     hashed_password = await hash_password(password)
-    return await repo.create_user(username,hashed_password)
+    return await repo.create_user(username,hashed_password,user_role)
 
 async def authenticate_user(repo: UserRepository, username: str, password: str)->bool:
     user = await repo.get_user_by_username(username)
