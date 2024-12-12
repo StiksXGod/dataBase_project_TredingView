@@ -1,6 +1,6 @@
 from utils.utils import create_token, decode_token
 from datetime import datetime, timedelta
-from logging import getLogger
+from core.logger import logger
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from asyncpg.exceptions import UniqueViolationError
@@ -10,7 +10,6 @@ from services.auth import create_user, get_user, login_auth, verify_refresh_toke
 from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName
 
 router = APIRouter()
-logger = getLogger(__name__)
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl = "/login")
 
@@ -68,41 +67,53 @@ async def get_user_info(
     token: str = Depends(oauth_scheme),
     db=Depends(get_db_connection)
 ):
+    try:
+        logger.info(f"Received token: {token}")
+        user_data = await decode_token(token, token_type="access")
+        logger.info(f"Decoded token data: {user_data}")
+        token_username = user_data["sub"]  # Используем "sub" вместо "username"
+        token_user_id = user_data["user_id"]
+        logger.info(f"Current time: {datetime.utcnow().timestamp()}")
 
-    logger.info(f"Received token: {token}")
-    user_data = await decode_token(token, token_type="access")
-    logger.info(f"Decoded token data: {user_data}")
-    token_username = user_data["sub"]  # Используем "sub" вместо "username"
-    token_user_id = user_data["user_id"]
 
-    if token_user_id != id:
+        if token_user_id != id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to access this resource"
+            )
+
+        user_repo = UserRepository(db)
+        user = await user_repo.get_user_by_username(token_username)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        return {
+            "id": user["id"],
+            "username": user["username"],
+            "refresh_token": user["refresh_token"],
+            "created_at": user["created_at"],
+            "role": user["role"],
+            "message": "User successfully authenticated and authorized."
+        }
+    except HTTPException as http_exc:
+        raise http_exc
+    
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to access this resource"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Some problems with server - {e}"
         )
 
-    user_repo = UserRepository(db)
-    user = await user_repo.get_user_by_username(token_username)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-
-    return {
-        "id": user["id"],
-        "username": user["username"],
-        "refresh_token": user["refresh_token"],
-        "created_at": user["created_at"],
-        "role": user["role"],
-        "message": "User successfully authenticated and authorized."
-    }
 
 @router.post("/refresh", response_model=Token, tags=["Auth"])
 async def refresh_token_endpoint(token_request: RefreshTokenRequest, db=Depends(get_db_connection)):
     user_repo = UserRepository(db)
     new_access_token, new_refresh_token = await verify_refresh_token(user_repo=user_repo ,refresh_token=token_request.refresh_token) # [access, refresh]
+    logger.info(f"Decoded token data: {new_refresh_token}")
 
     return {
         "access_token": new_access_token,

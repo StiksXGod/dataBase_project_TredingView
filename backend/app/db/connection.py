@@ -1,10 +1,10 @@
 import asyncpg
 from fastapi import Depends
-from core.config import DATABASE_URL
+from core.config import DevelopmentConfig
 
 
 async def get_db_connection():
-    conn = await asyncpg.connect(DATABASE_URL)
+    conn = await asyncpg.connect(DevelopmentConfig.DATABASE_URL)
     try:
         yield conn
     finally:

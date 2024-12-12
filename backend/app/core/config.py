@@ -1,17 +1,28 @@
-"""
+from dotenv import load_dotenv
+import os
 
-Config settings 
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
-"""
+class Config:
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    SECRET_KEY_ACCESS = os.getenv("SECRET_KEY_ACCESS")
+    SECRET_KEY_REFRESH = os.getenv("SECRET_KEY_REFRESH")
+    ALGORITHM = os.getenv("ALGORITHM")
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES_FOR_PROD"))
+    REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
+    ALLOWED_CHARACTERS = set(os.getenv("ALLOWED_CHARACTERS"))
+
+    DEBUG = True
+    TESTING = False
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 
 
+class ProductionConfig(Config):
+    DEBUG = False
 
-ALLOWED_CHARACTERS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
-SECRET_KEY_ACCESS = "SOUOqvSs2v1Jc0d28bWBiRh05PEuOIrPDImzaJ9u"
-SECRET_KEY_REFRESH = "IGiqd668Fc9bwp7HrSs8UKcBnRk1Y4uRxWYQYWvH"
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
-REFRESH_TOKEN_EXPIRE_DAYS = 3
-DATABASE_URL = "postgresql://stiks:13072332@localhost:5432/tredingview"
+class TestingConfig(Config):
+    TESTING = True

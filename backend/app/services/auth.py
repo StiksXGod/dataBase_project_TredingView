@@ -1,9 +1,10 @@
 from typing import List
+from api.auth import logger
 from passlib.context import CryptContext
 from repositories.user import UserRepository
 from fastapi import HTTPException, status
 from utils.utils import hash_password,verify_password,decode_token,create_token
-from core.config import ALLOWED_CHARACTERS
+from core.config import DevelopmentConfig
 
 async def get_user(repo: UserRepository, username: str) -> bool:
     user = await repo.check_username(username)
@@ -28,8 +29,8 @@ async def login_auth(repo: UserRepository, username: str, password: str)->bool:
         )
 
 async def username_password_checker(username:str, password:str)->None:
-    flag_usrn = all(char in ALLOWED_CHARACTERS for char in username)
-    flag_passwd = all(char in ALLOWED_CHARACTERS for char in password)
+    flag_usrn = all(char in DevelopmentConfig.ALLOWED_CHARACTERS for char in username)
+    flag_passwd = all(char in DevelopmentConfig.ALLOWED_CHARACTERS for char in password)
     if len(username)>18 or len(username)<5 or not(flag_usrn):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="username not supported rules")
     if len(password)>22 or len(password)<8 or not(flag_passwd):
@@ -40,7 +41,7 @@ async def verify_refresh_token(user_repo: UserRepository, refresh_token:str)->Li
     payload = await decode_token(refresh_token, token_type="refresh")
     username = payload.get("sub")
     user_id = payload.get("user_id")
-
+    logger.info(f"id_user {user_id}")
     if username is None or user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -48,14 +49,22 @@ async def verify_refresh_token(user_repo: UserRepository, refresh_token:str)->Li
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    is_valid = await user_repo.verify_refresh_token(user_id, refresh_token)
+    is_valid = await user_repo.verify_refresh_token(user_id)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    if is_valid!=refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="wrong refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
+    
     new_access_token = await create_token(
         data={"sub": username, "user_id": user_id},
         token_type="access"
@@ -65,6 +74,7 @@ async def verify_refresh_token(user_repo: UserRepository, refresh_token:str)->Li
         data={"sub": username, "user_id": user_id},
         token_type="refresh"
     )
+    
     await user_repo.update_refresh_token(user_id, new_refresh_token)
     return new_access_token, new_refresh_token
 

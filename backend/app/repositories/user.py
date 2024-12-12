@@ -47,7 +47,7 @@ class UserRepository:
         query = "UPDATE Users SET refresh_token = $1 WHERE id = $2"
         await self.db.execute(query, refresh_token, user_id)
 
-    async def verify_refresh_token(self, user_id: int, refresh_token: str) -> bool:
+    async def verify_refresh_token(self, user_id: int) -> bool:
         query = "SELECT refresh_token FROM Users WHERE id = $1"
         stored_refresh_token = await self.db.fetchval(query, user_id)
         return stored_refresh_token
