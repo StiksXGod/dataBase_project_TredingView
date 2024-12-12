@@ -11,6 +11,9 @@ class Config:
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES_FOR_PROD"))
     REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
     ALLOWED_CHARACTERS = set(os.getenv("ALLOWED_CHARACTERS"))
+    MAX_SIZE_POOL = int(os.getenv("MAX_SIZE_POOL"))
+    MIN_SIZE_POOL = int(os.getenv("MIN_SIZE_POOL"))
+
 
     DEBUG = True
     TESTING = False

@@ -2,10 +2,17 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
  
+class UserAuth(BaseModel):
+    password_hash :str
+    refresh_token: Optional[str] = None
+    last_login: Optional[datetime] = None 
+
+class CreatedUserResponse(BaseModel):
+    id:int
+ 
 class User(BaseModel):
     id: int
     username: str
-    refresh_token: Optional[str] = None  
     role: str
     created_at: datetime
 
@@ -14,6 +21,9 @@ class User(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class AccessToken(BaseModel):
+    token : str
 
 class UserName(BaseModel):
     username: str
@@ -27,7 +37,6 @@ class CreateUserRequest(BaseModel):
     username: str
     password: str
     role: Optional[str] = "user"
-
-class LoginUserRequest(BaseModel):
-    username: str
-    password: str
+ 
+class DeleteUserId(BaseModel):
+    id:int

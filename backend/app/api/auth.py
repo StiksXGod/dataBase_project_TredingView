@@ -4,16 +4,16 @@ from core.logger import logger
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from asyncpg.exceptions import UniqueViolationError
-from db.connection import get_db_connection
+from dependencies.dependencies import get_db_connection
 from repositories.user import UserRepository
-from services.auth import create_user, get_user, login_auth, verify_refresh_token
-from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName
+from services.auth import create_user, get_user, login_auth, verify_refresh_token, user_delete
+from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName, CreatedUserResponse, DeleteUserId
 
 router = APIRouter()
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl = "/login")
 
-@router.post("/register", tags=["Auth"], response_model=User)
+@router.post("/register", tags=["Auth"], response_model=CreatedUserResponse)
 async def register(user: CreateUserRequest, db=Depends(get_db_connection)):
     user_repo = UserRepository(db)
     try:
@@ -22,9 +22,8 @@ async def register(user: CreateUserRequest, db=Depends(get_db_connection)):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="User with this username already registered"
             )
-        
         user_id = await create_user(user_repo, user.username, user.password, user_role=user.role)
-        return {"id":user_id, "username":user.username, "refresh_token": None, "created_at": datetime.now(), "role":user.role}
+        return {"id": user_id, "message": "User created successfully."}
     
     except HTTPException as http_exc:
         raise http_exc
@@ -39,26 +38,21 @@ async def register(user: CreateUserRequest, db=Depends(get_db_connection)):
 @router.post("/login", tags=["Auth"], response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db_connection)):
     user_repo = UserRepository(db)
-    user_login = await login_auth(user_repo, form_data.username, form_data.password)
-    if user_login:
-        user_data = await user_repo.get_user_by_username(form_data.username)
-        if not user_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-
+    try:
+        user_data = await login_auth(user_repo, form_data.username, form_data.password)
         access_token = await create_token(
-            data={"sub": user_data["username"], "user_id": user_data["id"], "user_role":user_data["role"]},
+            data={"sub": user_data.username, "user_id": user_data.id, "user_role":user_data.role},
             token_type="access"
         )
         refresh_token = await create_token(
-            data={"sub": user_data["username"], "user_id": user_data["id"], "user_role":user_data["role"]},
+            data={"sub": user_data.username, "user_id": user_data.id, "user_role":user_data.role},
             token_type="refresh"
         )
-        await user_repo.update_refresh_token(user_data["id"], refresh_token)
-        logger.info(f"User {user_data["username"]} requested a new access token using refresh token.")
+        await user_repo.update_refresh_token(user_data.id, refresh_token)
+        logger.info(f"User {user_data.username} requested a new access token using refresh token.")
         return {"access_token": access_token, "refresh_token":refresh_token, "token_type": "bearer"}
+    except HTTPException as http_exc:
+        raise http_exc
     
 
 @router.get("/id/{id}", tags=["Protected"], response_model=User)
@@ -92,11 +86,11 @@ async def get_user_info(
             )
 
         return {
-            "id": user["id"],
-            "username": user["username"],
-            "refresh_token": user["refresh_token"],
-            "created_at": user["created_at"],
-            "role": user["role"],
+            "id": user.id,
+            "username": user.username,
+            "created_at": datetime.fromisoformat(str(user.created_at)).strftime("%Y-%m-%d %H:%M:%S")
+,
+            "role": user.role,
             "message": "User successfully authenticated and authorized."
         }
     except HTTPException as http_exc:
@@ -122,10 +116,22 @@ async def refresh_token_endpoint(token_request: RefreshTokenRequest, db=Depends(
     }
 
 
-@router.delete("/delete", tags=["delete"])
-async def delete_user(user: UserName, db=Depends(get_db_connection)):
+@router.delete("/delete",tags=["Protected"], response_model=DeleteUserId)
+async def delete_user(
+    username: UserName,
+    token: str = Depends(oauth_scheme),
+    db=Depends(get_db_connection)
+):
     repo = UserRepository(db)
-    deleted = await repo.delete_user_by_username(user.username)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return {"message": f"User '{user.username}' deleted successfully"}
+    try:
+        delete_user_id = await user_delete(repo,username,token)
+        return DeleteUserId(id=delete_user_id)
+    
+    except HTTPException as http:
+        raise http
+    
+    except Exception as e:
+        raise e
+    
+
+
