@@ -132,6 +132,3 @@ async def delete_user(
     
     except Exception as e:
         raise e
-    
-
-

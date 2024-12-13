@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from fastapi import status, HTTPException
-from jose import JWTError, jwt, ExpiredSignatureError
+from jose import JWTError, jwt
 from core.config import DevelopmentConfig
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

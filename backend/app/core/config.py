@@ -20,7 +20,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES_FOR_DEV"))
 
 
 

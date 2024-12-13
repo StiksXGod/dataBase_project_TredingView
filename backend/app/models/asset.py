@@ -3,22 +3,37 @@ from typing import Optional
 from pydantic import BaseModel
  
 
-class Asset(BaseModel):
-    id:int
+class AssetTable(BaseModel):
     ticker: str
     name: str
     image_url: str
-    type_id:str
-    exchange_id:str
-    image_text:str
+
+class AssetView(BaseModel):
+    id:int
+    cur_time:datetime
+    user_id:int
+    asset_id:int
+
+class AssetId(BaseModel):
+    id:int
+
+class Asset(BaseModel):
+    ticker: str
+    name: str
+    image_url: str
+    type_id:int
+    exchange_id:int
+    descriptions: str
 
 
 class AssetPrice(BaseModel):
-    id:int
     assert_id:int
     price:datetime
     price:float
 
 class AssetType(BaseModel):
-    id:int
     type:str
+
+class Exchange(BaseModel):
+    name: str
+    location: str

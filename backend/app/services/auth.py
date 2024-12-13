@@ -4,7 +4,7 @@ from repositories.user import UserRepository
 from fastapi import HTTPException, status
 from utils.utils import hash_password,verify_password,decode_token,create_token
 from core.config import DevelopmentConfig
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import JWTError, ExpiredSignatureError
 from datetime import datetime
 from models.user import AccessToken, DeleteUserId,User,UserName
 

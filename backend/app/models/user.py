@@ -9,6 +9,9 @@ class UserAuth(BaseModel):
 
 class CreatedUserResponse(BaseModel):
     id:int
+
+class UserId(BaseModel):
+    id:int
  
 class User(BaseModel):
     id: int

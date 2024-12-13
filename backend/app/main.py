@@ -3,6 +3,7 @@ import asyncio
 from fastapi import FastAPI
 from db.connection import get_db_pool
 from api.auth import router as api_router
+from api.asset_view import router as view_router
 
 
 
@@ -18,6 +19,7 @@ async def shutdown_event():
     await app.state.pool.close()
 
 app.include_router(api_router)
+app.include_router(view_router)
 
 
 if __name__ == "__main__":
