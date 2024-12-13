@@ -25,6 +25,8 @@ class Asset(BaseModel):
     exchange_id:int
     descriptions: str
 
+class AssetName(BaseModel):
+    name:str
 
 class AssetPrice(BaseModel):
     assert_id:int

@@ -1,6 +1,6 @@
 from asyncpg import Connection
 from typing import Optional
-from models.asset import AssetView, AssetTable, Asset, AssetId
+from models.asset import AssetView, AssetTable, Asset, AssetId, AssetName
 from core.logger import logger
 from models.user import UserId
 
@@ -51,6 +51,18 @@ class AssetRepository:
         except Exception as e:
             logger.info(f"Error DataBase {e}")
             raise e
+        
+    async def delete_asset_by_name(self, asset_name: AssetName) -> Optional[AssetId]:
+        query = """
+            DELETE FROM assets
+            WHERE name = $1
+            RETURNING id;
+        """
+        row = await self.connection.fetchrow(query, asset_name.name)
+        
+        if row:
+            return AssetId(id=row['id'])
+        return None
 
 
     
