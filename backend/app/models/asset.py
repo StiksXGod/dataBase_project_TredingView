@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List
 from pydantic import BaseModel
  
 
@@ -7,6 +7,9 @@ class AssetTable(BaseModel):
     ticker: str
     name: str
     image_url: str
+
+class AllAssetsResponse(BaseModel):
+    assets:List[AssetTable]
 
 class AssetView(BaseModel):
     id:int

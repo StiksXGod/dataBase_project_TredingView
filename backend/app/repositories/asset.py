@@ -1,6 +1,6 @@
 from asyncpg import Connection
 from typing import Optional
-from models.asset import AssetView, AssetTable, Asset, AssetId, AssetName
+from models.asset import AssetView, AssetTable, Asset, AssetId, AssetName, AllAssetsResponse
 from core.logger import logger
 from models.user import UserId
 
@@ -52,6 +52,19 @@ class AssetRepository:
             logger.info(f"Error DataBase {e}")
             raise e
         
+    async def get_all_assets(self) -> AllAssetsResponse:
+        query = """
+            SELECT name, ticker, image_url
+            FROM assets;
+        """
+        rows = await self.connection.fetch(query)
+        
+        # Преобразуем все строки в список объектов AssetTable
+        assets = [AssetTable(**row) for row in rows]
+
+        # Возвращаем объект AllAssetsResponse с пустым списком, если нет активов
+        return AllAssetsResponse(assets=assets)
+
     async def delete_asset_by_name(self, asset_name: AssetName) -> Optional[AssetId]:
         query = """
             DELETE FROM assets

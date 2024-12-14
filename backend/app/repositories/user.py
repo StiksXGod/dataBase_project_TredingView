@@ -2,7 +2,6 @@ from asyncpg import Connection
 from typing import Optional
 from asyncpg import Connection
 from datetime import datetime
-from core.logger import logger
 from models.user import User,UserAuth,RefreshTokenRequest
 
 class UserRepository:

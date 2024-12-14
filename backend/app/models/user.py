@@ -35,6 +35,9 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+class UserLoginResponse(BaseModel):
+    access_token: str
+    user_id: int
 
 class CreateUserRequest(BaseModel):
     username: str

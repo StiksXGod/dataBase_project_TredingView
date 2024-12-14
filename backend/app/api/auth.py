@@ -7,7 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from dependencies.dependencies import get_db_connection
 from repositories.user import UserRepository
 from services.auth import create_user, get_user, login_auth, verify_refresh_token, user_delete
-from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName, CreatedUserResponse, DeleteUserId
+from models.user import CreateUserRequest, User, Token,RefreshTokenRequest, UserName, CreatedUserResponse, DeleteUserId, UserLoginResponse
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ async def register(user: CreateUserRequest, db=Depends(get_db_connection)):
         )
 
 
-@router.post("/login", tags=["Auth"], response_model=Token)
+@router.post("/login", tags=["Auth"], response_model=UserLoginResponse)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db_connection)):
     user_repo = UserRepository(db)
     try:
@@ -50,7 +50,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get
         )
         await user_repo.update_refresh_token(user_data.id, refresh_token)
         logger.info(f"User {user_data.username} requested a new access token using refresh token.")
-        return {"access_token": access_token, "refresh_token":refresh_token, "token_type": "bearer"}
+        return {"access_token": access_token, "user_id": user_data.id}
     except HTTPException as http_exc:
         raise http_exc
     
